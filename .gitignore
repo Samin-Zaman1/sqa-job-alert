@@ -1,0 +1,18 @@
+# Your settings and secrets (Telegram token, Gmail app password). Copied from config.example.json on first run.
+config.json
+
+# LinkedIn login cookies: never commit
+linkedin_session/
+
+# Personal data and generated output
+jobs.db
+jobs.db-journal
+jobs.html
+*.log
+*.pdf
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

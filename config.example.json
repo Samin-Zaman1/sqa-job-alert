@@ -1,0 +1,565 @@
+{
+  "search_keywords": [
+    "SQA",
+    "QA",
+    "Quality Assurance",
+    "Software Tester",
+    "Test Engineer",
+    "SDET",
+    "Test Automation",
+    "Testing",
+    "Automation",
+    "QE",
+    "UAT",
+    "Selenium",
+    "Playwright",
+    "Cypress",
+    "Appium",
+    "JMeter",
+    "ISTQB"
+  ],
+  "filters": {
+    "_help": "strong_title: unambiguous software-testing titles (SQA, SDET, QA Engineer, Software Engineer in Test, Functional Tester, UAT Analyst, Playwright/Selenium/Cypress...), always kept. weak_title: vague titles (QA Executive, Quality Engineer, QC Engineer, Tester...), kept only on a company careers page, in Bdjobs' IT category, or when the company name matches tech_company. exclude: industry words (garments, pharma, lab, PLC, call center...) that drop a job: checked in the title, and in the company name for weak matches.",
+    "strong_title": "\\b(sdet|s\\.?q\\.?a|qae|qe|software (?:quality|test|testing|tester|testers|qa|qc)\\w*|(?:q\\.?a\\.?|q\\.?e\\.?)[ -]?(?:engineer|tester|lead|analyst|automation|manual|architect|intern|trainee|consultant|developer)s?|(?:automation|automated|manual|mobile|app|game|games|api|performance|load|stress|security|web|website|ui|functional|regression|integration|e2e|end[- ]to[- ]end|usability|accessibility|localization|localisation|beta|bug|android|ios|frontend|backend|embedded|firmware|data|etl|blockchain|smart contract) (?:qa|qe|tester|testers|testing|test engineer|test analyst)|test(?:ing)? (?:engineer|automation|analyst|lead|manager|architect|specialist|consultant|developer|intern|trainee|coordinator)s?|automation (?:test|qa|qe|testing|tester)\\w*|quality assurance (?:automation|tester|analyst|engineer)|(?:software |developer |engineer |engineering )in test|uat (?:engineer|analyst|tester|specialist|lead|coordinator)|quality engineer(?:ing)?[\\s(-]*(?:software|automation|qa|test)|qa ?/ ?(?:sqa|qe|testing)|sqa ?/ ?qa|selenium|playwright|cypress|appium|katalon|jmeter|gatling|loadrunner|webdriverio|robot framework|testcomplete|ranorex|tosca|xcuitest|testng|cucumber|istqb|ctfl)\\b",
+    "weak_title": "\\b(q\\.?a|qc (?:engineer|tester|analyst)|quality assurance|quality engineer\\w*|quality analyst|tester|testers|testing|automation engineer|uat)\\b",
+    "tech_company": "\\b(it|ict|software|soft|tech|techno|technology|technologies|solutions?|digital|fintech|systems?|labs?|apps?|bpo|ai|cloud|saas|web|data|cyber|telecom|interactive|studios?|games?|infotech|innovations?|computing|networks?|platforms?|limited \\(it\\))\\b",
+    "exclude": "\\b(garments?|textiles?|knit|knitting|denim|apparel|fabric|dyeing|washing|sewing|sweaters?|woven|fashion|food|foods|pharma|pharmaceuticals?|chemist|chemicals?|medical|diagnostics|hospital|civil|construction|welding|electrical|mechanical|lab|laborator(?:y|ies)|leather|footwear|plastic|packaging|cement|steel|feed|tea|merchandis\\w*|qa/qc|qc/qa|qc ?& ?qa|qa ?& ?qc|qa-qc|qc-qa|buying house|supplier|plc|scada|instrumentation|industrial|hvac|rpa|call cent(?:er|re)|contact cent(?:er|re)|customer (?:service|care)|marketing automation|ndt|dairy|poultry|cosmetics?|toiletries|printing|yarn|spinning|accessories|trims|ceramics?|glass|paint|beverage|bakery|frozen|seafood|agro|fertilizer|automobile|automotive|vehicle|tyre|battery|cable|power plant|substation|generator|transformer|rmg|sample|embroidery|audit|auditor|raters?|annotators?|inspection|inspectors?)\\b",
+    "skip_level": "\\b(junior|jr|entry[- ]level|associate|graduate|fresher|manager|head|director|vp|vice president)\\b"
+  },
+  "fit": {
+    "_help": "Scores how well each job matches your CV (Playwright/TypeScript, API testing, automation, SaaS; ~3 years). Each term found in the title, experience or description adds its weight; best fits sort first on the board.",
+    "terms": [
+      {"label": "Playwright", "pattern": "\\bplaywright\\b", "weight": 4},
+      {"label": "TypeScript", "pattern": "\\btypescript\\b", "weight": 3},
+      {"label": "JavaScript/Node", "pattern": "\\bjavascript\\b|\\bnode(?:\\.?js)?\\b", "weight": 1},
+      {"label": "API testing", "pattern": "\\bapis?\\b|rest ?api|restful|postman|swagger|openapi", "weight": 2},
+      {"label": "Automation", "pattern": "\\bautomat\\w+|\\bsdet\\b|engineer in test", "weight": 2},
+      {"label": "CI/CD", "pattern": "github actions|\\bci ?/ ?cd\\b|continuous integration", "weight": 1},
+      {"label": "SaaS/web", "pattern": "\\bsaas\\b|\\bweb app\\w*", "weight": 1},
+      {"label": "UAT/regression", "pattern": "\\buat\\b|\\bregression\\b", "weight": 1},
+      {"label": "Load testing", "pattern": "load test\\w*|performance test\\w*|\\bk6\\b|jmeter", "weight": 1},
+      {"label": "Java", "pattern": "\\bjava\\b", "weight": -2},
+      {"label": "C#/.NET", "pattern": "c#|\\.net\\b", "weight": -2},
+      {"label": "Mobile", "pattern": "\\bappium\\b|\\bios\\b|\\bandroid\\b|mobile app", "weight": -1},
+      {"label": "Platform-specific", "pattern": "\\b(sap|salesforce|servicenow|pega|guidewire|dynamics 365)\\b", "weight": -3},
+      {"label": "Hardware/embedded", "pattern": "\\bembedded\\b|firmware|hardware|\\bkernel\\b|automotive", "weight": -3},
+      {"label": "Other language required", "pattern": "(?:fluent|native|proficien\\w*)[^.]{0,40}\\b(german|french|spanish|dutch|japanese|portuguese|italian|polish|arabic)\\b|\\(m/[fw]/d\\)", "weight": -3},
+      {"label": "5+ years asked", "pattern": "(?<![-\\u2013\\d] )(?<![-\\u2013\\d])(?<!to )\\b(?:[5-9]|1[0-9])\\s*\\+?\\s*(?:years|yrs)", "weight": -2}
+    ]
+  },
+  "sources": {
+    "bdjobs": true,
+    "linkedin": true,
+    "companies": true,
+    "linkedin_posts": true,
+    "global": true
+  },
+  "companies": {
+    "_help": "type: html (plain careers page), easyjobs, lever, greenhouse, ashby or bjit. location (optional regex) keeps only matching roles of a global company.",
+    "check_every_hours": 24,
+    "delay_seconds": 2,
+    "list": [
+      {
+        "name": "Brain Station 23",
+        "url": "https://brainstation-23.easy.jobs/",
+        "type": "easyjobs",
+        "enabled": true
+      },
+      {
+        "name": "BJIT",
+        "url": "https://bjitgroup.com/career",
+        "type": "bjit",
+        "enabled": true
+      },
+      {
+        "name": "Cefalo",
+        "url": "https://career.cefalo.com/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Kolpolok",
+        "url": "https://kolpolok.com/career/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "SouthTech",
+        "url": "https://career.southtechgroup.com/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Kaz Software",
+        "url": "https://www.kaz.com.bd/company/career",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Dream71",
+        "url": "https://dream71.com/career",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Optimizely",
+        "url": "https://careers.optimizely.com/search/?q=&locationsearch=Dhaka",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Field Nation",
+        "url": "https://jobs.lever.co/fieldnation",
+        "type": "lever",
+        "location": "Dhaka|Bangladesh",
+        "enabled": true
+      },
+      {
+        "name": "Vivasoft",
+        "url": "https://vivasoftltd.com/career/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "DSi (Dynamic Solution Innovators)",
+        "url": "https://app.hrythmic.com/recruit/openings/company/dsinnovators/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Echologyx",
+        "url": "https://careers.echologyx.com/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Riseup Labs",
+        "url": "https://careers-page.com/riseup-labs",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Appstick",
+        "url": "https://appstick.com.bd/career",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Bangladesh Software Solution",
+        "url": "https://bssoln.com/careers/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Bdtask",
+        "url": "https://www.bdtask.com/career.php",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Brac IT Services (biTS)",
+        "url": "https://www.bracits.com/career/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Giga Tech Limited",
+        "url": "https://gigatechltd.com/career/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "HawarIT",
+        "url": "https://www.hawarit.com/career-at-hawarit/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Inument",
+        "url": "https://inument.com/careers/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Invento Software Limited",
+        "url": "https://invento.com.bd/career/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "IXORA Solution",
+        "url": "https://ixorasolution.com/career/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Markopolo AI",
+        "url": "https://www.markopolo.ai/careers",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Mediusware",
+        "url": "https://www.mediusware.com/career",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Mevrik Ltd.",
+        "url": "https://www.mevrik.com/career",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Namespace IT",
+        "url": "https://namespaceit.com/career/current_job_opening",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Nogor Solutions Limited",
+        "url": "https://nogorsolutions.com/career",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Onecodesoft",
+        "url": "https://onecodesoft.com/career",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Ollyo",
+        "url": "https://ollyo.com/careers/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Retina Soft",
+        "url": "https://retinasoft.com.bd/career",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "SovWare",
+        "url": "https://sovware.com/career/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "TechnoVista Limited",
+        "url": "https://technovista.com.bd/career/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Technext Limited",
+        "url": "https://technext.it/careers/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Workspace InfoTech Limited",
+        "url": "https://www.workspaceit.com/career/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "WPDeveloper",
+        "url": "https://wpdeveloper.com/jobs/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "WPCommerz",
+        "url": "https://wpcommerz.com/career",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Xpeed Studio (Roxnor)",
+        "url": "https://roxnor.com/career/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Zaynax Limited",
+        "url": "http://www.zaynax.com/careers",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "6sense Technologies",
+        "url": "https://6sensehq.com/career",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "LightCastle Partners",
+        "url": "https://lightcastlepartners.com/careers/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "mPower Social Enterprises Limited",
+        "url": "https://mpower-social.com/career/",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Pridesys IT",
+        "url": "https://pridesys.com/careers",
+        "type": "html",
+        "enabled": true
+      },
+      {
+        "name": "Canonical",
+        "url": "https://job-boards.greenhouse.io/canonical",
+        "type": "greenhouse",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "GitLab",
+        "url": "https://job-boards.greenhouse.io/gitlab",
+        "type": "greenhouse",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Wikimedia Foundation",
+        "url": "https://job-boards.greenhouse.io/wikimedia",
+        "type": "greenhouse",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "OKX",
+        "url": "https://job-boards.greenhouse.io/okx",
+        "type": "greenhouse",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Bybit",
+        "url": "https://job-boards.greenhouse.io/bybit",
+        "type": "greenhouse",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Binance",
+        "url": "https://job-boards.greenhouse.io/binance",
+        "type": "greenhouse",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Binance (Lever)",
+        "url": "https://jobs.lever.co/binance",
+        "type": "lever",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Brave",
+        "url": "https://job-boards.greenhouse.io/brave",
+        "type": "greenhouse",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Toptal",
+        "url": "https://jobs.lever.co/toptal",
+        "type": "lever",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Supabase",
+        "url": "https://jobs.ashbyhq.com/supabase",
+        "type": "ashby",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "PostHog",
+        "url": "https://jobs.ashbyhq.com/posthog",
+        "type": "ashby",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Railway",
+        "url": "https://jobs.ashbyhq.com/railway",
+        "type": "ashby",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Zapier",
+        "url": "https://jobs.ashbyhq.com/zapier",
+        "type": "ashby",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "ClickUp",
+        "url": "https://jobs.ashbyhq.com/clickup",
+        "type": "ashby",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Phantom",
+        "url": "https://jobs.ashbyhq.com/phantom",
+        "type": "ashby",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Alchemy",
+        "url": "https://jobs.ashbyhq.com/alchemy",
+        "type": "ashby",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Buffer",
+        "url": "https://jobs.ashbyhq.com/buffer",
+        "type": "ashby",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Parity Technologies",
+        "url": "https://jobs.ashbyhq.com/parity",
+        "type": "ashby",
+        "board": "global",
+        "enabled": true
+      },
+      {
+        "name": "Nethermind",
+        "url": "https://jobs.ashbyhq.com/nethermind",
+        "type": "ashby",
+        "board": "global",
+        "enabled": true
+      }
+    ]
+  },
+  "bdjobs": {
+    "it_category_ids": [
+      8
+    ]
+  },
+  "linkedin": {
+    "keywords": [
+      "SQA",
+      "QA",
+      "Quality Assurance",
+      "Software Tester",
+      "Software Testing",
+      "Test Engineer",
+      "SDET",
+      "Test Automation",
+      "QA Automation",
+      "Playwright",
+      "API Testing",
+      "Selenium",
+      "Cypress",
+      "Appium"
+    ],
+    "location": "Bangladesh",
+    "posted_within_seconds": 2592000,
+    "max_pages": 10,
+    "stop_after_empty_pages": 4,
+    "delay_seconds": 5,
+    "_help": "keywords are combined into one OR search ranked by relevance; paging stops after stop_after_empty_pages pages in a row with no QA match, or when results run out.",
+    "label_work_mode": true
+  },
+  "notify": {
+    "desktop": true,
+    "telegram": {
+      "enabled": false,
+      "bot_token": "",
+      "chat_id": ""
+    },
+    "email": {
+      "enabled": false,
+      "smtp_host": "smtp.gmail.com",
+      "smtp_port": 587,
+      "username": "",
+      "app_password": "",
+      "to": ""
+    }
+  },
+  "linkedin_posts": {
+    "_help": "Uses your logged-in LinkedIn session (see linkedin_posts.py). Each query is one search of the past week's posts.",
+    "check_every_hours": 6,
+    "scrolls": 4,
+    "show_browser": false,
+    "queries": [
+      "hiring SQA Bangladesh",
+      "hiring SQA Dhaka",
+      "hiring QA engineer Bangladesh",
+      "hiring software tester Dhaka",
+      "QA automation hiring Dhaka"
+    ]
+  },
+  "global": {
+    "_help": "Remote SQA jobs (the Global board). eligibility = who may apply. only_open_to_bd keeps just jobs open worldwide, to Asia/APAC or to Bangladesh; set it false to keep every remote job (notify_restricted then decides whether those alert). LinkedIn is off because its cards show where the employer is, not who may apply.",
+    "check_every_hours": 6,
+    "only_open_to_bd": true,
+    "notify_restricted": false,
+    "linkedin_pages": 6,
+    "linkedin": {
+      "enabled": false
+    },
+    "himalayas": {
+      "enabled": true,
+      "country": "Bangladesh",
+      "queries": [
+        "qa engineer",
+        "sdet",
+        "test automation",
+        "software tester",
+        "qa automation",
+        "quality assurance",
+        "test engineer",
+        "qa analyst",
+        "qa tester",
+        "manual qa",
+        "playwright",
+        "api testing",
+        "postman",
+        "typescript qa",
+        "selenium",
+        "cypress"
+      ],
+      "pages": 5
+    },
+    "jobicy": {
+      "enabled": true,
+      "tags": [
+        "qa engineer",
+        "test automation",
+        "sdet",
+        "quality assurance",
+        "software tester",
+        "playwright"
+      ],
+      "geos": [
+        "apac"
+      ]
+    },
+    "remoteok": {
+      "enabled": true
+    },
+    "workingnomads": {
+      "enabled": true
+    },
+    "weworkremotely": {
+      "enabled": true
+    }
+  }
+}
