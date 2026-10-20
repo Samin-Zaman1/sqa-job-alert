@@ -1,6 +1,24 @@
 # SQA Job Alert (Bangladesh)
 
-Checks Bdjobs, LinkedIn, company careers pages and remote job boards for SQA / QA / testing jobs and notifies you about postings it hasn't seen before.
+I built this tool for myself while looking for SQA opportunities. It checks Bdjobs, LinkedIn, company careers pages and remote job boards for SQA / QA / testing jobs and notifies me about postings it hasn't seen before.
+
+## Why I built it
+Searching for SQA jobs in Bangladesh by hand was slow and noisy:
+- **Openings are scattered.** Some are only on Bdjobs or LinkedIn, some only on a company's own careers page, and some only appear as "We're hiring" posts on LinkedIn.
+- **"QA" usually isn't software.** Most QA results are garment, pharma or food quality-control roles.
+- **Most remote jobs aren't open to Bangladesh.** They're limited to the US, EU or another region.
+- **I kept seeing the same job again.** Postings are reposted and listed on several sites.
+
+## What it does
+- **Searches 10+ sources twice a day.** Bdjobs, LinkedIn jobs, LinkedIn hiring posts, about 60 company careers pages (Greenhouse, Lever, Ashby, easy.jobs and plain HTML), and remote boards (Himalayas, Jobicy, RemoteOK, Working Nomads, We Work Remotely).
+- **Filters out non-software QA.** Regex filters separate software-testing titles from quality-control roles. They're backed by a unit-test suite of about 115 real job titles and look-alikes.
+- **Keeps only remote jobs I can apply to.** These are jobs open worldwide, to Asia/APAC or to Bangladesh.
+- **Removes duplicates.** It matches company + title across sources and reposts.
+- **Scores each job against my CV.** Playwright, TypeScript, API testing and automation rank higher; Java-only or platform-specific roles rank lower.
+- **Tracks my applications.** A local web UI holds the boards: Inbox, Saved for later, Applied (with a follow-up nudge after a week), and Archive. I can add notes to each job.
+- **Alerts me about new jobs.** Alerts come by desktop notification, Telegram or email.
+
+Built with Python (standard library only, plus optional Playwright), SQLite, a single-page HTML/JS UI, and a Windows scheduled task.
 
 ## Setup (Windows)
 1. Install Python 3.10+ and clone this repo.
