@@ -1,12 +1,12 @@
 """SQA job alert for Bangladesh.
 
-Polls Bdjobs, LinkedIn and company careers pages for SQA / QA / testing jobs,
+Polls Bdjobs, LinkedIn, Jobgether, company careers pages and remote job boards for SQA / QA / testing jobs,
 stores every posting it has seen in SQLite, and notifies (desktop toast /
 Telegram / email) only about postings it has not seen before.
 
 Usage:
     py sqa_jobs.py            # check once, notify about new jobs
-    py sqa_jobs.py --all      # same, but check company pages and LinkedIn posts even if not due yet
+    py sqa_jobs.py --all      # same, but check company pages, LinkedIn posts and Jobgether even if not due yet
     py sqa_jobs.py --list     # print the jobs currently tracked (newest first)
     py sqa_jobs.py --test     # send a test notification through every enabled channel
 """
@@ -664,43 +664,164 @@ _TITLE_TAGS = re.compile(r"\((?:[^)]*\b(?:remote|hybrid|on-?site|contract|locati
 _TITLE_WORDS = re.compile(r"\b(remote|hybrid|on-?site|full[- ]time|part[- ]time|contract|urgent(?:ly)?|hiring)\b")
 
 
+def _co_key(company):
+    co = re.sub(r"\(.*?\)|\[.*?\]|\s\|.*$", " ", (company or "").lower())  # "Binance (Lever)", "CoverGo | Insurtech"
+    return re.sub(r"[^a-z0-9]+", "", _CO_SUFFIX.sub(" ", co))
+
+
+def _title_key(title):
+    t = (title or "").lower().replace("sr.", "senior ").replace("jr.", "junior ")
+    t = _TITLE_WORDS.sub(" ", re.sub(r"\s\|.*$", " ", _TITLE_TAGS.sub(" ", t)))
+    return re.sub(r"[^a-z0-9]+", "", t)
+
+
 def dup_key(title, company):
     """Company + title, normalized, so one job found on two sources (or reposted) is tracked once:
     "Canonical Ltd" / "QA Engineer (Remote) | Contract" == "canonical" / "QA Engineer".
     Different titles at one company ("QA Engineer" vs "Senior QA Engineer") stay separate.
     Empty when there's no title to go on."""
-    co = re.sub(r"\(.*?\)|\[.*?\]", " ", (company or "").lower())  # "Binance (Lever)" -> "binance"
-    co = re.sub(r"[^a-z0-9]+", "", _CO_SUFFIX.sub(" ", co))
-    t = (title or "").lower().replace("sr.", "senior ").replace("jr.", "junior ")
-    t = _TITLE_WORDS.sub(" ", re.sub(r"\s\|.*$", " ", _TITLE_TAGS.sub(" ", t)))
-    t = re.sub(r"[^a-z0-9]+", "", t)
-    return f"{co}|{t}" if t else ""
+    t = _title_key(title)
+    return f"{_co_key(company)}|{t}" if t else ""
 
 
-def save_jobs(con, jobs):
+def _is_reposter(reposters):
+    keys = {_co_key(r) for r in reposters}
+    return lambda company: _co_key(company) in keys
+
+
+_EMAIL = re.compile(r"[\w.+-]+@([\w-]+(?:\.[\w-]+)+)")
+_FREE_MAIL = {"gmail", "googlemail", "yahoo", "ymail", "hotmail", "outlook", "live", "msn", "icloud", "aol",
+              "proton", "protonmail", "gmx", "mail", "zoho", "yandex"}
+_TLDS = {"com", "net", "org", "io", "co", "bd", "ai", "app", "tech", "info", "biz", "dev", "us", "uk", "in", "edu", "gov"}
+_LEVEL = re.compile(r"\b(senior|sr|junior|jr|mid|lead|principal|staff|head|manager|intern|internship|trainee)\b")
+_LEVEL_ALIAS = {"sr": "senior", "jr": "junior", "internship": "intern"}
+
+
+def _email(job):
+    """The apply email (LinkedIn posts keep it in experience as "Apply: …"), lowercased, or ""."""
+    m = _EMAIL.search(job.get("experience") or "")
+    return m.group(0).lower() if m else ""
+
+
+def _email_company(email):
+    """pridesys from career@pridesys.com / hr@mail.pridesys.com.bd; "" for free mail like gmail."""
+    parts = [p for p in email.split("@")[-1].split(".") if p not in _TLDS]
+    name = re.sub(r"[^a-z0-9]+", "", parts[-1]) if parts else ""
+    return "" if name in _FREE_MAIL or len(name) < 4 else name
+
+
+def _levels(title):
+    return {_LEVEL_ALIAS.get(w, w) for w in _LEVEL.findall((title or "").lower())}
+
+
+def _years(experience):
+    m = re.search(r"(\d+)(?:\s*(?:-|–|to)\s*\d+)?\s*\+?\s*(?:years?|yrs?)", experience or "", re.I)
+    return int(m.group(1)) if m else None
+
+
+def _salary_range(salary):
+    nums = [float(n) for n in re.findall(r"\d+(?:\.\d+)?", (salary or "").replace(",", ""))]
+    return (min(nums), max(nums)) if nums else None
+
+
+def _same_job_by_email(a, b):
+    """Two jobs tied together by an apply email: the same address, or one's email domain naming the
+    other's company (career@pridesys.com ↔ "Pridesys IT Limited"). The title wording may differ, but
+    the seniority words must agree ("Senior" vs none stays apart), and experience/salary, when both
+    give one, must not clearly differ."""
+    if a["region"] != b["region"] or a["levels"] != b["levels"]:
+        return False
+    if not (a["email"] and a["email"] == b["email"]
+            or any(x["domain"] and y["co"] and (y["co"].startswith(x["domain"]) or x["domain"].startswith(y["co"]))
+                   for x, y in ((a, b), (b, a)))):
+        return False
+    if a["years"] is not None and b["years"] is not None and abs(a["years"] - b["years"]) >= 2:
+        return False
+    sa, sb = a["salary"], b["salary"]
+    return not (sa and sb and (sa[1] < sb[0] or sb[1] < sa[0]))
+
+
+def _keep_first(reposters=()):
+    """Sort key for feeding _dedup_index: listings first, then emailed posts, then reposters' copies,
+    so the copy that gets dropped is the least informative one."""
+    is_rep = _is_reposter(reposters)
+    return lambda j: (is_rep(j["company"]), bool(_email(j)))
+
+
+def _dedup_index(reposters=()):
+    """match(job) -> id of the tracked job it duplicates, or None after remembering it as tracked.
+    A duplicate has the same dup_key; or is a reposter's copy (a recruiter account that re-posts
+    other companies' jobs under its own name) of a job with the same title on the same board; or
+    is tied to a tracked job by its apply email (see _same_job_by_email).
+    Feed it jobs in _keep_first order so copies find their originals."""
+    is_rep = _is_reposter(reposters)
+    exact, titles = {}, {}  # dup_key -> id; (region, title key) -> id of a non-reposter job
+    known = []  # facts of every tracked job, for the email rule
+    def match(j):
+        key = dup_key(j["title"], j["company"]) or j["id"]
+        t = (j.get("region") or "bd", _title_key(j["title"]))
+        rep = is_rep(j["company"])
+        if key in exact:
+            return exact[key]
+        if rep and t[1] and t in titles:
+            return titles[t]
+        email = _email(j)
+        facts = {"id": j["id"], "region": t[0], "levels": _levels(j["title"]), "email": email,
+                 "domain": _email_company(email), "co": "" if rep else _co_key(j["company"]),
+                 "years": _years(j.get("experience")), "salary": _salary_range(j.get("salary"))}
+        same = next((f["id"] for f in known if (email or f["email"]) and _same_job_by_email(facts, f)), None)
+        if same:
+            return same
+        exact[key] = j["id"]
+        if not rep and t[1]:
+            titles.setdefault(t, j["id"])
+        known.append(facts)
+        return None
+    return match
+
+
+def merge_duplicates(con, reposters=()):
+    """Delete stored jobs that duplicate another one (e.g. saved before a duplicate rule caught them),
+    keeping any you've touched (status, notes, saved, applied). Copies go in _keep_first order.
+    Returns how many were deleted."""
+    match = _dedup_index(reposters)
+    rows = sorted(map(dict, con.execute("SELECT * FROM jobs ORDER BY first_seen")), key=_keep_first(reposters))
+    now = dt.datetime.now().isoformat(timespec="seconds")
+    gone = [r["id"] for r in rows if match(r) and r["status"] == "new"
+            and not (r["notes"] or r["saved_at"] or r["applied_at"])]
+    # remembered by id only: the original keeps the dup_key and absorbs this copy if it shows up again
+    con.executemany("INSERT OR REPLACE INTO removed_jobs (id, removed_at, dup_key) VALUES (?,?,'')",
+                    [(i, now) for i in gone])
+    con.executemany("DELETE FROM jobs WHERE id=?", [(i,) for i in gone])
+    con.commit()
+    return len(gone)
+
+
+def save_jobs(con, jobs, reposters=()):
     """Insert/refresh jobs and return the ones never seen before. A job already tracked under another
-    id (same company and title from another source, or reposted) is a duplicate: it only refreshes
-    the tracked one's last_seen."""
+    id (same company and title from another source, reposted, or a reposter's copy) is a duplicate:
+    it only refreshes the tracked one's last_seen."""
     now = dt.datetime.now().isoformat(timespec="seconds")
     new = []
-    tracked = {}  # dup_key -> id of the job already tracked
-    for r in con.execute("SELECT id, title, company FROM jobs ORDER BY first_seen"):
-        tracked.setdefault(dup_key(r["title"], r["company"]) or r["id"], r["id"])
+    order = _keep_first(reposters)
+    match = _dedup_index(reposters)
+    for r in sorted(map(dict, con.execute("SELECT * FROM jobs ORDER BY first_seen")), key=order):
+        match(r)
     removed_ids, removed_keys = set(), set()
     for r in con.execute("SELECT id, dup_key FROM removed_jobs"):
         removed_ids.add(r["id"])
         if r["dup_key"]:
             removed_keys.add(r["dup_key"])
-    for j in jobs:
+    for j in sorted(jobs, key=order):
         key = dup_key(j["title"], j["company"]) or j["id"]
         if j["id"] in removed_ids or key in removed_keys:
             continue
         j = {"region": "bd", "work_mode": "", "eligibility": "", "open_to_bd": 1, "fit": None, "fit_terms": None, **j}
         exists = con.execute("SELECT 1 FROM jobs WHERE id=?", (j["id"],)).fetchone()
-        if not exists and key in tracked:  # same job under another id
-            con.execute("UPDATE jobs SET last_seen=? WHERE id=?", (now, tracked[key]))
+        tracked = None if exists else match(j)
+        if tracked:  # same job under another id
+            con.execute("UPDATE jobs SET last_seen=? WHERE id=?", (now, tracked))
             continue
-        tracked.setdefault(key, j["id"])
         if exists:  # refresh the labels and fit too, so jobs saved before they existed get them
             con.execute("UPDATE jobs SET last_seen=:now, work_mode=COALESCE(NULLIF(:work_mode,''), work_mode),"
                         " eligibility=COALESCE(NULLIF(:eligibility,''), eligibility),"
@@ -881,6 +1002,8 @@ def run_check(cfg, force_companies=False):
         found.extend(fetch_companies(cfg, con, force_companies))
     if cfg["sources"].get("linkedin_posts"):
         found.extend(fetch_linkedin_posts(cfg, con, force_companies))
+    if cfg["sources"].get("jobgether"):
+        found.extend(fetch_jobgether(cfg, con, force_companies))
     first_global = False
     if cfg["sources"].get("global"):
         global_jobs, first_global = fetch_global(cfg, con, force_companies)
@@ -888,7 +1011,11 @@ def run_check(cfg, force_companies=False):
 
     for j in found:
         j["fit"], j["fit_terms"] = fit_score(cfg, j)
-    new = save_jobs(con, found)
+    reposters = (cfg.get("dedupe") or {}).get("reposters", [])
+    new = save_jobs(con, found, reposters)
+    merged = merge_duplicates(con, reposters)
+    if merged:
+        log.info("removed %d duplicate jobs", merged)
     write_report(con, {j["id"] for j in new})
     log.info("%d new jobs", len(new))
 
@@ -916,18 +1043,18 @@ def run_check(cfg, force_companies=False):
     print(f"{len(found)} matching jobs found, {len(new)} new. Report: {REPORT_PATH}")
 
 
-def fetch_linkedin_posts(cfg, con, force=False):
-    """Hiring posts via your logged-in LinkedIn session, at most every linkedin_posts.check_every_hours."""
-    opts = cfg.get("linkedin_posts") or {}
-    prev = meta_get(con, "linkedin_posts", {})
+def _session_source(cfg, con, force, key, name, search, settings, home):
+    """Run a source that uses your own logged-in browser session (config/meta key `key`), at most
+    every <key>.check_every_hours. search() returns job records or raises LoginRequired."""
+    opts = cfg.get(key) or {}
+    prev = meta_get(con, key, {})
     due_before = dt.datetime.now() - dt.timedelta(hours=opts.get("check_every_hours", 6))
     if not force and prev.get("checked") and dt.datetime.fromisoformat(prev["checked"]) > due_before:
         return []
     state = {"checked": dt.datetime.now().isoformat(timespec="seconds"), "found": 0, "error": "", "needs_login": False}
     jobs = []
     try:
-        import linkedin_posts
-        jobs = linkedin_posts.search_posts(cfg, is_sqa, log.info)
+        jobs = search()
         state["found"] = len(jobs)
     except ImportError:
         state["error"] = "Playwright isn't installed (py -m pip install playwright)"
@@ -935,15 +1062,33 @@ def fetch_linkedin_posts(cfg, con, force=False):
         state["error"] = str(exc)[:300]
         state["needs_login"] = type(exc).__name__ == "LoginRequired"
     if state["error"]:
-        log.warning("LinkedIn posts: %s", state["error"])
-    meta_set(con, "linkedin_posts", state)
+        log.warning("%s: %s", name, state["error"])
+    meta_set(con, key, state)
     if state["needs_login"] and not prev.get("needs_login") and cfg["notify"].get("desktop"):
         try:  # tell you once, not every run
-            notify_desktop("SQA job alert: LinkedIn needs you to log in again",
-                           "Open the app → Settings → LinkedIn hiring posts → Log in.", "https://www.linkedin.com/")
+            notify_desktop(f"SQA job alert: {name.split()[0]} needs you to log in again",
+                           f"Open the app → Settings → {settings} → Log in.", home)
         except Exception:
             log.exception("Desktop notification failed")
     return jobs
+
+
+def fetch_linkedin_posts(cfg, con, force=False):
+    """Hiring posts via your logged-in LinkedIn session."""
+    def search():
+        import linkedin_posts
+        return linkedin_posts.search_posts(cfg, is_sqa, log.info)
+    return _session_source(cfg, con, force, "linkedin_posts", "LinkedIn posts", search,
+                           "LinkedIn hiring posts", "https://www.linkedin.com/")
+
+
+def fetch_jobgether(cfg, con, force=False):
+    """Your Jobgether matches, via your logged-in Jobgether session."""
+    def search():
+        import jobgether
+        return jobgether.search_matches(cfg, is_sqa, log.info)
+    return _session_source(cfg, con, force, "jobgether", "Jobgether matches", search,
+                           "Global remote jobs → Jobgether", "https://jobgether.com/talent/matches")
 
 
 def list_jobs():

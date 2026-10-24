@@ -3,6 +3,8 @@ config.json
 
 # LinkedIn login cookies: never commit
 linkedin_session/
+jobgether_session/
+jobgether_dump.*
 
 # Personal data and generated output
 jobs.db

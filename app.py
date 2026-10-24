@@ -47,7 +47,8 @@ class Runner:
     def _run(self, kind):
         args = {"check": [sys.executable, str(ROOT / "sqa_jobs.py"), "--all"],
                 "test": [sys.executable, str(ROOT / "sqa_jobs.py"), "--test"],
-                "login": [sys.executable, str(ROOT / "linkedin_posts.py"), "--login"]}[kind]
+                "login": [sys.executable, str(ROOT / "linkedin_posts.py"), "--login"],
+                "jobgether_login": [sys.executable, str(ROOT / "jobgether.py"), "--login"]}[kind]
         try:
             proc = subprocess.run(args, cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
                                   errors="replace", creationflags=NO_WINDOW)
@@ -57,10 +58,11 @@ class Runner:
                 out = (proc.stdout + "\n" + proc.stderr).strip()
         except Exception as exc:
             out, code = f"Failed to start: {exc}", -1
-        if kind == "login" and code == 0:  # fresh session: clear any "log in again" flag
+        key = {"login": "linkedin_posts", "jobgether_login": "jobgether"}.get(kind)
+        if key and code == 0:  # fresh session: clear any "log in again" flag
             con = sqa_jobs.db_connect()
-            state = sqa_jobs.meta_get(con, "linkedin_posts", {})
-            sqa_jobs.meta_set(con, "linkedin_posts", {**state, "needs_login": False, "error": ""})
+            state = sqa_jobs.meta_get(con, key, {})
+            sqa_jobs.meta_set(con, key, {**state, "needs_login": False, "error": ""})
             con.close()
         with self.lock:
             self.state.update(running=False, output=out, returncode=code, finished=_now())
@@ -201,10 +203,11 @@ def company_status():
         con.close()
 
 
-def linkedin_posts_status():
+def session_source_status(key, profile):
+    """Last search and login state of a source that uses your own browser session."""
     con = sqa_jobs.db_connect()
     try:
-        state = sqa_jobs.meta_get(con, "linkedin_posts", {})
+        state = sqa_jobs.meta_get(con, key, {})
     finally:
         con.close()
     try:
@@ -212,7 +215,7 @@ def linkedin_posts_status():
         installed = True
     except ImportError:
         installed = False
-    return {**state, "installed": installed, "has_session": (ROOT / "linkedin_session").exists()}
+    return {**state, "installed": installed, "has_session": (ROOT / profile).exists()}
 
 
 def test_company(data):
@@ -352,7 +355,12 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/company-status":
                 return self._send(200, company_status())
             if path == "/api/linkedin-posts":
-                return self._send(200, linkedin_posts_status())
+                return self._send(200, session_source_status("linkedin_posts", "linkedin_session"))
+            if path == "/api/jobgether":
+                s = session_source_status("jobgether", "jobgether_session")
+                s["uses_cookie"] = bool((sqa_jobs.load_config().get("jobgether") or {}).get("cookie"))
+                s["has_session"] = s["has_session"] or s["uses_cookie"]
+                return self._send(200, s)
             if path == "/api/global-status":
                 con = sqa_jobs.db_connect()
                 try:
@@ -385,8 +393,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, test_filter(data))
             if path == "/api/company-test":
                 return self._send(200, test_company(data))
-            if path in ("/api/run", "/api/test", "/api/linkedin-login"):
-                started = runner.start({"/api/run": "check", "/api/test": "test", "/api/linkedin-login": "login"}[path])
+            if path in ("/api/run", "/api/test", "/api/linkedin-login", "/api/jobgether-login"):
+                started = runner.start({"/api/run": "check", "/api/test": "test", "/api/linkedin-login": "login",
+                                        "/api/jobgether-login": "jobgether_login"}[path])
                 return self._send(200 if started else 409, runner.snapshot())
             if path == "/api/schedule":
                 return self._send(200, schedule_action(data))

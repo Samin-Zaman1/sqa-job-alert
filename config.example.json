@@ -47,11 +47,16 @@
       {"label": "5+ years asked", "pattern": "(?<![-\\u2013\\d] )(?<![-\\u2013\\d])(?<!to )\\b(?:[5-9]|1[0-9])\\s*\\+?\\s*(?:years|yrs)", "weight": -2}
     ]
   },
+  "dedupe": {
+    "_help": "reposters: recruiter/aggregator accounts that re-post other companies' jobs under their own name. Their copy of a job already tracked (same title, same board) is treated as a duplicate.",
+    "reposters": ["nextjobz"]
+  },
   "sources": {
     "bdjobs": true,
     "linkedin": true,
     "companies": true,
     "linkedin_posts": true,
+    "jobgether": true,
     "global": true
   },
   "companies": {
@@ -505,6 +510,14 @@
       "hiring software tester Dhaka",
       "QA automation hiring Dhaka"
     ]
+  },
+  "jobgether": {
+    "_help": "Your Jobgether matches page, read with your logged-in Jobgether session (see jobgether.py). cookie: the Cookie header copied from your logged-in browser (DevTools → Network); leave empty to use py jobgether.py --login instead. Only offers whose title passes the filters are opened, at most max_offers per check.",
+    "check_every_hours": 6,
+    "scrolls": 5,
+    "max_offers": 40,
+    "show_browser": false,
+    "cookie": ""
   },
   "global": {
     "_help": "Remote SQA jobs (the Global board). eligibility = who may apply. only_open_to_bd keeps just jobs open worldwide, to Asia/APAC or to Bangladesh; set it false to keep every remote job (notify_restricted then decides whether those alert). LinkedIn is off because its cards show where the employer is, not who may apply.",

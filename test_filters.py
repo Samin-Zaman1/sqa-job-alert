@@ -103,6 +103,7 @@ class Duplicates(unittest.TestCase):
         (("QA Automation Engineer (m/f/d)", "zvoove"), ("QA Automation Engineer", "zvoove GmbH")),
         (("QA Engineer | Remote - Contract", "Xperteez Technology"), ("QA Engineer", "Xperteez Technology")),
         (("Binance Accelerator Program - QA (Web3)", "Binance (Lever)"), ("Binance Accelerator Program - QA (Web3)", "Binance")),
+        (("Senior Software QA Engineer (Manual Testing)", "CoverGo"), ("Senior Software QA Engineer (Manual Testing)", "CoverGo | Insurtech")),
     ]
     DIFFERENT = [
         (("QA Engineer", "Novacard"), ("Senior QA Engineer", "Novacard")),
@@ -120,6 +121,40 @@ class Duplicates(unittest.TestCase):
         for a, b in self.DIFFERENT:
             with self.subTest(a=a, b=b):
                 self.assertNotEqual(sqa_jobs.dup_key(*a), sqa_jobs.dup_key(*b))
+
+    def test_reposter_copies(self):
+        match = sqa_jobs._dedup_index(["nextjobz"])
+        job = lambda i, title, company, region="bd": {"id": i, "title": title, "company": company, "region": region}
+        self.assertIsNone(match(job("1", "Senior QA Engineer", "Newgen Technology Limited")))
+        self.assertIsNone(match(job("2", "Senior QA Engineer", "Novacard", "global")))
+        self.assertEqual(match(job("3", "Senior QA Engineer", "nextjobz")), "1")  # same board only
+        self.assertIsNone(match(job("4", "Playwright Tester", "nextjobz")))  # nothing to copy: kept
+        self.assertIsNone(match(job("5", "Senior QA Engineer", "Other Co")))  # two real companies stay apart
+
+    def test_apply_email(self):
+        match = sqa_jobs._dedup_index()
+        job = lambda i, title, company, experience="", salary="": {
+            "id": i, "title": title, "company": company, "experience": experience, "salary": salary}
+        self.assertIsNone(match(job("1", "Software Quality Assurance Engineer", "Pridesys IT Limited", "2 to 5 years")))
+        # posts by other accounts, worded differently, with the company's email
+        self.assertEqual(match(job("2", "QA engineers", "Talent Search", "Apply: career@pridesys.com")), "1")
+        self.assertEqual(match(job("3", "SQA IT", "SQA IT", "Apply: career@pridesys.com")), "1")
+        # same inbox, different level: another job
+        self.assertIsNone(match(job("4", "Senior SQA Engineer", "Someone", "Apply: career@pridesys.com")))
+        self.assertEqual(match(job("5", "Sr. QA Engineer", "Someone Else", "Apply: CAREER@pridesys.com")), "4")
+        # free mail says nothing about the company
+        self.assertIsNone(match(job("6", "SQA Engineer", "Gmail Poster", "Apply: hr.jobs@gmail.com")))
+        self.assertIsNone(match(job("7", "QA Tester", "Another Poster", "Apply: careers@gmail.com")))
+        self.assertEqual(match(job("8", "QA Engineer", "Third Poster", "Apply: hr.jobs@gmail.com")), "6")
+
+    def test_apply_email_ruled_out_by_salary_or_experience(self):
+        match = sqa_jobs._dedup_index()
+        job = lambda i, experience="", salary="": {
+            "id": i, "title": "SQA Engineer", "company": f"Poster {i}", "experience": experience, "salary": salary}
+        self.assertIsNone(match(job("1", "Apply: hr@acmesoft.com 2 years", "Tk. 30000 - 40000")))
+        self.assertIsNone(match(job("2", "Apply: hr@acmesoft.com 6 years")))  # experience clearly differs
+        self.assertIsNone(match(job("3", "Apply: hr@acmesoft.com 2 years", "Tk. 80000 - 90000")))  # salary doesn't overlap
+        self.assertEqual(match(job("4", "Apply: hr@acmesoft.com", "35000")), "1")
 
 
 if __name__ == "__main__":

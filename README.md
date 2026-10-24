@@ -1,6 +1,6 @@
 # SQA Job Alert (Bangladesh)
 
-I built this tool for myself while looking for SQA opportunities. It checks Bdjobs, LinkedIn, company careers pages and remote job boards for SQA / QA / testing jobs and notifies me about postings it hasn't seen before.
+I built this tool for myself while looking for SQA opportunities. It checks Bdjobs, LinkedIn, Jobgether, company careers pages and remote job boards for SQA / QA / testing jobs and notifies me about postings it hasn't seen before.
 
 ## Why I built it
 Searching for SQA jobs in Bangladesh by hand was slow and noisy:
@@ -10,7 +10,7 @@ Searching for SQA jobs in Bangladesh by hand was slow and noisy:
 - **I kept seeing the same job again.** Postings are reposted and listed on several sites.
 
 ## What it does
-- **Searches 10+ sources twice a day.** Bdjobs, LinkedIn jobs, LinkedIn hiring posts, about 60 company careers pages (Greenhouse, Lever, Ashby, easy.jobs and plain HTML), and remote boards (Himalayas, Jobicy, RemoteOK, Working Nomads, We Work Remotely).
+- **Searches 10+ sources twice a day.** Bdjobs, LinkedIn jobs, LinkedIn hiring posts, my Jobgether matches, about 60 company careers pages (Greenhouse, Lever, Ashby, easy.jobs and plain HTML), and remote boards (Himalayas, Jobicy, RemoteOK, Working Nomads, We Work Remotely).
 - **Filters out non-software QA.** Regex filters separate software-testing titles from quality-control roles. They're backed by a unit-test suite of about 115 real job titles and look-alikes.
 - **Keeps only remote jobs I can apply to.** These are jobs open worldwide, to Asia/APAC or to Bangladesh.
 - **Removes duplicates.** It matches company + title across sources and reposts.
@@ -23,7 +23,7 @@ Built with Python (standard library only, plus optional Playwright), SQLite, a s
 ## Setup (Windows)
 1. Install Python 3.10+ and clone this repo.
 2. Run `py app.py`. On first run `config.example.json` is copied to `config.json`, which holds your own settings and secrets and is not committed (see `.gitignore`).
-3. Optional: `py -m pip install playwright` and Google Chrome for LinkedIn hiring posts.
+3. Optional: `py -m pip install playwright` and Google Chrome for LinkedIn hiring posts and Jobgether matches.
 4. Install the background check from **Schedule & log** in the UI, or with `.\install_task.ps1`.
 
 Everything else uses the Python standard library.
@@ -46,7 +46,8 @@ Double-click `ui.cmd` (or run `py app.py`) to open http://127.0.0.1:8765 in your
 |---|---|
 | `py app.py [--port 8765] [--no-browser]` | Start the web UI |
 | `py sqa_jobs.py` | Check now and notify about new jobs |
-| `py sqa_jobs.py --all` | Same, and check every company page even if it isn't due yet |
+| `py sqa_jobs.py --all` | Same, and check every company page, LinkedIn posts and Jobgether even if they aren't due yet |
+| `py jobgether.py --login` / `--status` / `--search` | Log in to Jobgether, check the session, or print your QA matches |
 | `py sqa_jobs.py --list` | List all tracked jobs, newest first |
 | `py sqa_jobs.py --test` | Send a test notification through every enabled channel |
 | `.\install_task.ps1 [-IntervalMinutes 30] [-FirstRun "09:00"]` | (Re)register the scheduled task; currently `-IntervalMinutes 720 -FirstRun "09:00"` = 9 AM and 9 PM daily |
@@ -74,6 +75,15 @@ Optional source for "We're hiring an SQA engineer…" posts, which aren't job li
 - **LinkedIn** (off by default): a worldwide remote search. Its cards show where the employer is, not who may apply, so almost nothing passes the Bangladesh filter, and it's often rate-limited.
 
 Most remote jobs are limited to one country or region. With `only_open_to_bd: true` (the default) only jobs open worldwide, to Asia/APAC or to Bangladesh are kept. Set it to `false` to keep every remote job on the board; `notify_restricted` then decides whether the restricted ones alert you. The first global search fills the board with a single summary alert.
+
+### Jobgether matches (uses your account)
+Jobgether's [matches page](https://jobgether.com/talent/matches) lists the jobs it matched to your Jobgether profile. It's only shown when you're logged in, so it's read with your session, at most every `jobgether.check_every_hours` (default 6). Two ways to give it your session:
+- **Reuse the browser you're logged in with:** on jobgether.com/talent/matches press F12 → Network → reload → click the `matches` request → Request Headers → copy the value of `cookie`, and paste it into Settings → Global remote jobs → Jobgether matches → *Session cookie* (`jobgether.cookie`). It's stored only in `config.json`, which isn't committed. When it expires you get one desktop notification asking for a fresh one.
+- **Or log in once in a separate Chrome profile:** *Log in to Jobgether* in the same section (or `py jobgether.py --login`), which keeps the session in `jobgether_session/`. Your password isn't saved by this code.
+- **What's read:** only the list of offers comes from the matches page. Offers whose title (from the link) passes your filters, up to `max_offers` (default 40), are then read from their public offer pages: title, company, dates, description (for the fit score) and who can apply.
+- **Who can apply:** Jobgether names each country's parent regions too ("Europe, EMEA, United Kingdom" is a UK-only role), so the listed countries are used when there are any, and roles spanning four or more continents count as worldwide.
+- **Boards:** remote offers go on the Global board under the same `only_open_to_bd` rule as the job boards; hybrid and on-site offers in Bangladesh go on the Bangladesh board; others are dropped.
+- If the session expires, the search stops, you get one desktop notification, and Settings says what to do. The cookie and `jobgether_session/` both give access to your Jobgether account; don't share or commit them.
 
 ## Company careers pages
 `config.json → companies.list` holds careers pages that are checked directly, each at most once every `check_every_hours` (default 6), however often the scheduled task runs. Each entry has a `type`:

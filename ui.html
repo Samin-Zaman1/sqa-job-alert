@@ -535,6 +535,34 @@ pre.log .w { color: var(--amber); } pre.log .e { color: var(--red); } pre.log .t
             <label class="switch"><input type="checkbox" data-path="global.weworkremotely.enabled"><span></span></label>
           </div>
         </div>
+        <div class="toggle-row">
+          <div><div class="t">Jobgether matches</div><div class="d">The jobs on your Jobgether matches page, read with your own Jobgether login.</div></div>
+          <label class="switch"><input type="checkbox" data-path="sources.jobgether"><span></span></label>
+        </div>
+        <div style="display:grid;gap:16px" data-show="sources.jobgether">
+          <div class="li-session">
+            <div><div id="jgStatus" class="co-status" style="font-size:13px">Checking session…</div></div>
+            <button class="btn" id="jgLogin" type="button">Log in to Jobgether</button>
+          </div>
+          <div class="field">
+            <label for="jgCookie">Session cookie from your browser</label>
+            <input type="password" id="jgCookie" autocomplete="off" spellcheck="false" placeholder="Paste the Cookie header here" data-path="jobgether.cookie">
+            <div class="hint">Reuses the browser you're already logged in with, so you don't need the login button. On jobgether.com/talent/matches press F12 → Network → reload → click the “matches” request → Request Headers → copy the value of <b>cookie</b>. Paste a fresh one when it expires (you'll be notified). Stored only in config.json on this computer.</div>
+          </div>
+          <div class="hint" style="margin-top:-8px">Without a cookie, uses your account through a separate Chrome profile in this folder. Remote matches go on the Global board, labelled with who can apply (the “Only keep roles open to Bangladesh” switch applies); hybrid and on-site matches in Bangladesh go on the Bangladesh board. Only QA roles your filters accept are kept.</div>
+          <div class="grid2">
+            <div class="field">
+              <label for="jgEvery">Read matches every (hours)</label>
+              <input type="number" id="jgEvery" min="2" max="72" data-path="jobgether.check_every_hours" data-type="int">
+              <div class="hint">“Check now” always includes it.</div>
+            </div>
+            <div class="field">
+              <label for="jgMax">Most offers to open per check</label>
+              <input type="number" id="jgMax" min="1" max="200" data-path="jobgether.max_offers" data-type="int">
+              <div class="hint">Only offers whose title looks like QA are opened.</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1052,12 +1080,14 @@ async function pollRun(initial = false) {
   polling = false;
   if (initial || !st.finished) return;
   const lastLine = (st.output || "").trim().split("\n").pop();
-  if (st.kind === "login") toast(st.returncode ? "LinkedIn login wasn't completed." : "Logged in to LinkedIn.", st.returncode ? "err" : "ok");
+  const site = { login: "LinkedIn", jobgether_login: "Jobgether" }[st.kind];
+  if (site) toast(st.returncode ? `${site} login wasn't completed.` : `Logged in to ${site}.`, st.returncode ? "err" : "ok");
   else if (st.returncode) toast(`${st.kind === "test" ? "Test" : "Check"} failed — see Schedule & log.`, "err");
   else toast(st.kind === "test" ? "Test notification sent." : lastLine.replace(/ Report:.*$/, ""), "ok");
   loadJobs();
   loadCompanyStatus();
   loadLinkedInStatus();
+  loadJobgetherStatus();
   loadGlobalStatus();
   if (!$("#view-schedule").hidden) loadLog();
 }
@@ -1073,6 +1103,8 @@ function renderRunState(st) {
   $("#testBtn").disabled = st.running;
   $("#liLogin").disabled = st.running;
   if (st.running && st.kind === "login") $("#liStatus").textContent = "A Chrome window is open — log in to LinkedIn there. It closes by itself when you're in.";
+  $("#jgLogin").disabled = st.running;
+  if (st.running && st.kind === "jobgether_login") $("#jgStatus").textContent = "A Chrome window is open — log in to Jobgether there. It closes by itself when you're in.";
   $("#testBtn").textContent = st.running && st.kind === "test" ? "Sending…" : "Send test";
   $("#runStatus").textContent = running ? "LinkedIn can take a few minutes" : "";
   if (st.finished) {
@@ -1203,6 +1235,7 @@ $("#saveBtn").onclick = async () => {
   try {
     await api("/api/config", cfg);
     savedCfg = structuredClone(cfg); syncSavebar(); toast("Settings saved.", "ok");
+    loadJobgetherStatus();
   } catch (e) { toast(e.message, "err"); }
 };
 $("#discardBtn").onclick = () => { cfg = structuredClone(savedCfg); fillForm(); };
@@ -1223,6 +1256,22 @@ async function loadLinkedInStatus() {
 }
 $("#liLogin").onclick = async () => {
   try { await api("/api/linkedin-login", {}); pollRun(); } catch (e) { toast(e.message, "err"); }
+};
+
+async function loadJobgetherStatus() {
+  let s;
+  try { s = await api("/api/jobgether"); } catch { return; }
+  if (currentRun === "jobgether_login") return;  // the login message owns the text until it finishes
+  $("#jgStatus").innerHTML = !s.installed ? `<span class="err">Playwright isn't installed. Run: py -m pip install playwright</span>`
+    : s.needs_login ? `<span class="err">${esc(s.error)}${s.checked ? ` (${esc(ago(s.checked))})` : ""}.</span>`
+    : !s.has_session ? "Not logged in yet. Paste your browser's cookie below, or log in here."
+    : !s.checked ? `${s.uses_cookie ? "Using your browser's session" : "Logged in"} · not read yet.`
+    : s.error ? `<span class="err">Last read failed: ${esc(s.error)}</span> · ${esc(ago(s.checked))}`
+    : `${s.uses_cookie ? "Using your browser's session" : "Logged in"} · read ${esc(ago(s.checked))} · <span class="${s.found ? "hit" : ""}">${s.found} QA match${s.found === 1 ? "" : "es"}</span>`;
+  $("#jgLogin").textContent = s.has_session && !s.needs_login ? "Log in again" : "Log in to Jobgether";
+}
+$("#jgLogin").onclick = async () => {
+  try { await api("/api/jobgether-login", {}); pollRun(); } catch (e) { toast(e.message, "err"); }
 };
 
 /* ------------------------------------------------------------------ */
@@ -1429,6 +1478,7 @@ $("#logRefresh").onclick = loadLog;
 loadJobs();
 loadConfig();
 loadLinkedInStatus();
+loadJobgetherStatus();
 loadGlobalStatus();
 pollRun(true);
 const startView = location.hash.slice(1);
